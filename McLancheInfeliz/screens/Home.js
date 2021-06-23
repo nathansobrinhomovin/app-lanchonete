@@ -4,36 +4,80 @@ import {
     Text,
     StyleSheet,
     FlatList,
-    TouchableOpacity,
-    ToastAndroid,
+    TouchableOpacity
 } from 'react-native';
 
 import { Button, Icon, Header, Body, Title } from 'native-base';
 import PedidosRepository from '../repositories/Pedidos';
-import PratosRepository from '../repositories/Pratos';
+import PedidoView from '../components/PedidoView';
+import store from '../redux/store';
+//import PratosRepository from '../repositories/Pratos';
 
-const repository = new PedidosRepository();
+const pedidosApi = new PedidosRepository();
 
 export default function HomeView(props) {
+    const user = store.getState().data
     const [data, setData] = React.useState([]);
 
     const retrieveData = () => {
-        repository.Retrieve((tx, results) => {
-            let data = [];
-            for (let i = 0; i < results.rows.length; i++) {
-                data.push(results.rows.item(i));
-            }
-            setData(data);
-        });
-    };
-
-    const deleteData = (id, onSuccess) => {
-        return repository.Delete({id}, onSuccess);
+        pedidosApi.getAll(
+            (results, error) => {
+                if (error) {
+                    alert('Ocorreu um erro inesperado!');
+                    return;
+                }
+                const res = results.rows;
+                if (res.status == 0) {
+                    if (res.message == 'Validation Error.') {
+                        alert(res.message + "\n" + res.data[0].msg)
+                    }
+                    else {
+                        alert(res.message)
+                    }
+                    return;
+                }
+                else {
+                    let data = [];
+                    for (let i = 0; i < res.data.length; i++) {
+                        if (res.data[i].status > 0) {
+                            data.push({
+                                id: i+1,
+                                _id: res.data[i]._id,
+                                mesa: res.data[i].mesa,
+                                nomeCliente: res.data[i].nomeCliente,
+                                status: res.data[i].status,
+                                valor: res.data[i].valor,
+                                createdAt: res.data[i].createdAt,
+                            });
+                        }
+                    }
+                    setData(data);
+                }
+            });
     };
     React.useEffect(() => {
         retrieveData();
     }, []);
     const styles = StyleSheet.create({
+        header: {
+            backgroundColor: '#DD2929',
+            flexDirection: 'row'
+        },
+        headerBack: {
+            justifyContent: 'center',
+            marginRight: 15
+        },
+        headerIcon: {
+            color: "#FFFFFF"
+        },
+        headerTittle: {
+            color: "#ffffff",
+            marginLeft: 2
+        },
+        headerSubTittle: {
+            color: "#ffffff",
+            fontWeight: "bold"
+        },
         safeArea: {
             flex: 1,
         },
@@ -46,10 +90,37 @@ export default function HomeView(props) {
         content: {
             flex: 1,
         },
+        button: {
+            height: 60,
+            width: 60,
+            backgroundColor: "#DD2929",
+            color: "#FFDA00",
+            justifyContent: 'center',
+        },
+        cadastroButtonContainer: {
+            position: 'absolute',
+            bottom: 25,
+            right: 25,
+        },
+        cadastroIcon: {
+            color: "#FFDA00"
+        }
     });
-    const Pedido = ({ id, mesa, style }) => (
-        <TouchableOpacity
-            style={{
+    const renderPedido = ({ item }) => {
+        const pedidoStyle = StyleSheet.create({
+            text: {
+                color: "#000000",
+                fontWeight: "bold",
+                fontSize: 18,
+            },
+            view: {
+                backgroundColor: "#FFDA00",
+                padding: 10,
+                margin: 5,
+                flexDirection: "row",
+                borderRadius: 10,
+            },
+            background: {
                 backgroundColor: "#DD2929",
                 color: "#FFDA00",
                 justifyContent: 'center',
@@ -59,69 +130,90 @@ export default function HomeView(props) {
                 marginBottom: 5,
                 marginTop: 5,
                 borderRadius: 10,
-            }}
-            onPress={
-                () => {
-                    const navigation = props.navigation;
-                    navigation.navigate('PedidoInfo', {
-                        id: id,
-                    }
-                    );
-                }
-            }>
-            <View style={style.view}>
-                <View style={{ flex: 93 }}>
-                    <Text style={style.text}>Pedido #{id}</Text>
-                    <Text style={style.text}>Mesa: {mesa}</Text>
-                </View>
-                <View style={{ flex: 7, position: 'absolute', bottom: 10, right: 10, }}>
-                    <TouchableOpacity
-                        onPress={
-                            () => {
-                                deleteData(id, () => {
-                                    alert("Pedido #".concat(id).concat(" deletado com sucesso"))
-                                    retrieveData();
-                                })
-                            }} >
-                        <Icon type="FontAwesome" name="trash" style={{ color: "#DD2929" }}>
-
-
-                        </Icon>
-                    </TouchableOpacity>
-                </View>
-            </View>
-
-        </TouchableOpacity>
-    );
-    const renderPedido = ({ item }) => (
-        <Pedido
-            id={item.id}
-            mesa={item.mesa}
-            style={
-                {
-                    text: {
-                        color: "#000000",
-                        fontWeight: "bold",
-                        fontSize: 18,
-                    },
-                    view: {
-                        backgroundColor: "#FFDA00",
-                        padding: 10,
-                        margin: 5,
-                        flexDirection: "row",
-                        borderRadius: 10,
-                    }
-                }
+            },
+            delete: {
+                flex: 7,
+                position: 'absolute',
+                bottom: 10,
+                right: 10,
+            },
+            textContainer: {
+                flex: 93,
+            },
+            icon: {
+                color: "#DD2929"
             }
-        />
-    );
-    return (
+        })
+        const deleteData = (id, _id) => {
+            return pedidosApi.delete(
+                { id: _id },
+                (results, error) => {
+                    if (error) {
+                        alert('Ocorreu um erro inesperado!');
+                        return;
+                    }
+                    const res = results.rows;
+                    if (res.status == 0) {
+                        if (res.message == 'Validation Error.') {
+                            alert(res.message + "\n" + res.data[0].msg)
+                        }
+                        else {
+                            alert(res.message)
+                        }
+                        return;
+                    }
+                    else {
+                        alert('Pedido #' + id + ' deletado com sucesso')
+                        retrieveData()
+                    }
+                },
+                () => {
+                    alert('deu algum erro patrão!')
+                });
+        };
+        const navigateToPedido = (id) => {
+            let pedido = data[id-1];
+            const navigation = props.navigation;
+            navigation.navigate('PedidoInfo', {
+                id: pedido.id,
+                token: pedido._id,
+                mesa: pedido.mesa,
+                nomeCliente: pedido.nomeCliente,
+                pedido: pedido,
+                user: user,
+            });
+        }
+        return (
+            <PedidoView
+                id={item.id}
+                _id={item._id}
+                mesa={item.mesa}
+                style={pedidoStyle}
+                onPress={navigateToPedido}
+                onPressDelete={deleteData}
+            />);
+    }
 
+    return (
         <View style={styles.container}>
-            <Header style={{ backgroundColor: '#DD2929' }} androidStatusBarColor="#C60000">
+            <Header style={styles.header} androidStatusBarColor="#C60000">
+                <TouchableOpacity
+                    style={styles.headerBack}
+                    onPress={
+                        () => {
+                            const navigation = props.navigation;
+                            navigation.goBack();
+                            navigation.replace('Login');
+                            store.dispatch({type: 'LOGIN', data: null});
+                        }
+                    }>
+                    <Icon type="FontAwesome" name="arrow-left" style={styles.headerIcon} />
+                </TouchableOpacity>
                 <Body>
-                    <Title style={{ color: "#ffffff" }}>Mc lanche infeliz</Title>
+                    <Title style={styles.headerTittle}>Mc lanche infeliz</Title>
+                    <Text style={styles.headerSubTittle}> {user.name} </Text>
                 </Body>
+
             </Header>
             <FlatList
                 data={data}
@@ -129,25 +221,15 @@ export default function HomeView(props) {
                 keyExtractor={item => item.id}
             />
             <View
-                style={{
-                    position: 'absolute',
-                    bottom: 25,
-                    right: 25,
-                }}>
+                style={styles.cadastroButtonContainer}>
                 <Button
                     rounded
-                    style={{
-                        height: 60,
-                        width: 60,
-                        backgroundColor: "#DD2929",
-                        color: "#FFDA00",
-                        justifyContent: 'center',
-                    }}
+                    style={styles.button}
                     onPress={() => {
                         const navigation = props.navigation;
                         navigation.navigate('Cadastro');
                     }}>
-                    <Icon type="FontAwesome" name="plus" style={{ color: "#FFDA00" }} />
+                    <Icon type="FontAwesome" name="plus" style={styles.cadastroIcon} />
                 </Button>
             </View>
         </View>

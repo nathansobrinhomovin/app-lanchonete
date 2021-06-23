@@ -1,7 +1,53 @@
-import {openDatabase, } from 'react-native-sqlite-storage';
+import store from '../redux/store';
+
+const url = 'https://mobile-feso-api.herokuapp.com/api/prato';
 
 export default class PratosRepository {
-  DBNAME = 'app.db';
+  getAllFromPedido(pedido, onSuccess, onError) {
+    return fetch(url + "/pedido/" + pedido.id, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + store.getState().data.token,
+      }
+    })
+      .then((response) => response.json())
+      .then((json) => {
+        onSuccess({rows: json});
+      })
+      .catch((error) => {
+        alert(error);
+        onError(error);
+      });
+  }
+
+  post(pedido, prato, onSuccess, onError) {
+    return fetch(url + "/", {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + store.getState().data.token,
+      },
+      body: JSON.stringify({
+        nome : prato.nome,
+        preco_unitario: prato.preco_uni,
+        quantidade: prato.quantidade,
+        pedido_id: pedido.id,
+      })
+    })
+      .then((response) => response.json())
+      .then((json) => {
+        onSuccess({rows: json});
+      })
+      .catch((error) => {
+        alert(error);
+        onError(error);
+      });
+  }
+
+  /*DBNAME = 'app.db';
   CREATE =
     'CREATE TABLE IF NOT EXISTS pratos (id INTEGER PRIMARY KEY AUTOINCREMENT, pedido_id INTEGER NOT NULL, prato_nome VARCHAR(100), quantidade INTEGER NOT NULL, preco_uni REAL, preco_total REAL)';
 
@@ -86,5 +132,5 @@ export default class PratosRepository {
     db.transaction((transaction) => {
       transaction.executeSql(this.DELETE, [prato.id], onSuccess, onError);
     });
-  }
+  }*/
 }

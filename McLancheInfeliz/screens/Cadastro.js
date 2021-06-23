@@ -3,9 +3,10 @@ import {
   Button, StyleSheet, Text, ScrollView, TextInput, View, Keyboard, TouchableOpacity,
   ToastAndroid, InteractionManager, FlatList, Modal,
 } from 'react-native';
-import { Header, Icon, Body, Title } from 'native-base';
+import { Header, Icon, Body, Title, StyleProvider } from 'native-base';
 import PedidosRepository from '../repositories/Pedidos';
 import PratosRepository from '../repositories/Pratos';
+import { withRepeat } from 'react-native-reanimated';
 
 const pedidosRepository = new PedidosRepository();
 const pratosRepository = new PratosRepository();
@@ -38,14 +39,15 @@ export default function CadastroView(props) {
   }
   const checkMesa = (mesa) => {
     onChangeMesa(mesa)
-    pedidosRepository.getMesa({ mesa }, (tx, results) => {
+    /*pedidosRepository.getMesa({ mesa }, (tx, results) => {
       if (results.rows.length > 0) {
         onCheckMesa(false)
       }
       else {
         onCheckMesa(true)
       }
-    });
+    });*/
+    onCheckMesa(true)
   };
   const getMesaString = () => {
     if (mesa) {
@@ -169,8 +171,70 @@ export default function CadastroView(props) {
                 alert('Nenhum lanche foi selecionado!')
                 return
               }
+              let total
+              data.forEach(e => {
+                total += (e.quantidade * e.preco_uni);
+              });
 
-              pedidosRepository.Save({ mesa: mesa, cliente_nome: nome }, () => {
+              const pedido = { mesa: mesa, nome_cliente: nome, valor: total, stauts: 1 };
+              pedidosRepository.post(
+                pedido,
+                (results, error) => {
+                  if (error) {
+                    alert('ocorreu um erro inesperado!');
+                    return;
+                  }
+                  const res = results.rows;
+                  if (res.status == 0) {
+                    if (res.message == 'Validation Error.') {
+                      alert(res.message + "\n" + res.data[0].msg)
+                    }
+                    else {
+                      alert(res.message)
+                    }
+                    return;
+                  }
+                  else {
+                    let pedido = res.data;
+                    data.forEach(e => {
+                      pratosRepository.post(
+                        pedido,
+                        e,
+                        (results, error) => {
+                          if (error) {
+                            alert('ocorreu um erro inesperado!');
+                            return;
+                          }
+                          const res = results.rows;
+                          if (res.status == 0) {
+                            if (res.message == 'Validation Error.') {
+                              alert(res.message + "\n" + res.data[0].msg)
+                            }
+                            else {
+                              alert(res.message)
+                            }
+                            return;
+                          }
+                        },
+                        () => {
+                          alert('deu algum erro patrão!')
+                        }
+                      )
+                      new Promise(resolve => setTimeout(resolve, 10));
+                    });
+
+
+                    const navigation = props.navigation;
+                    navigation.goBack();
+                    navigation.replace('Home');
+                  }
+                },
+                () => {
+                  alert('deu algum erro patrão!')
+                }
+              )
+
+              /*pedidosRepository.Save({ mesa: mesa, cliente_nome: nome }, () => {
                 //Informando que o cadastro foi feito com sucesso
                 pedidosRepository.getMesa({ mesa }, (tx, results) => {
                   let pedido = results.rows.item(0);
@@ -189,7 +253,7 @@ export default function CadastroView(props) {
                 navigation.replace('Home');
               }, (e) => {
                 alert('Erro durante salvamento');
-              });
+              });*/
             }}>
               <Text style={styles.enviarButtonText}>Enviar</Text>
             </TouchableOpacity>

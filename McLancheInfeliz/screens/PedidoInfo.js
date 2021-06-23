@@ -108,21 +108,22 @@ export default function pedidoInfoView(props) {
     }); // tem q ter esses pontos aki
     const checkMesa = (mesa) => {
         onChangeMesa(mesa)
-        pedidosRepository.getMesa({ mesa }, (tx, results) => {
+        onCheckMesa(true)
+        /*pedidosRepository.getMesa({ mesa }, (tx, results) => {
             if (results.rows.length > 0) {
                 onCheckMesa(false)
             }
             else {
                 onCheckMesa(true)
             }
-        });
+        });*/
     };
 
     const totalQtd = () => {
         let qtd = 0;
         if (data != null) {
             for (let i = 0; i < data.length; i++) {
-                qtd += data[i].quantidade;
+                qtd += parseInt(data[i].quantidade);
             }
         }
         return qtd
@@ -132,29 +133,56 @@ export default function pedidoInfoView(props) {
         let total = 0.0;
         if (data != null) {
             for (let i = 0; i < data.length; i++) {
-                total += (data[i].preco_uni * data[i].quantidade);
+                total += (data[i].preco_unitario * data[i].quantidade);
             }
         }
         return total
     }
     const retrieveData = () => {
-        let _id = props.route.params?.id
+        let pedido = props.route.params?.pedido;
+        setPedido(pedido);
+        onChangeNome(pedido.nomeCliente);
+        onChangeMesa(pedido.mesa);
+        let _id = pedido._id;
         if (_id) {
-            pedidosRepository.getOne({ id: _id }, (tx, results) => {
-                let pedido = results.rows.item(0);
-                setPedido(pedido)
-                onChangeNome(pedido.cliente_nome)
-                checkMesa(pedido.mesa)
-            });
-            pratosRepository.getByPedido({ id: _id }, (tx, results) => {
-                let data = [];
-                for (let i = 0; i < results.rows.length; i++) {
-                    data.push(results.rows.item(i));
-                }
-                setData(data);
-            });
+            pratosRepository.getAllFromPedido(
+                { id: _id },
+                (results, error) => {
+                    if (error) {
+                        alert('Ocorreu um erro inesperado!');
+                        return;
+                    }
+                    const res = results.rows;
+                    if (res.status == 0) {
+                        if (res.message == 'Validation Error.') {
+                            alert(res.message + "\n" + res.data[0].msg)
+                        }
+                        else {
+                            alert(res.message)
+                        }
+                        return;
+                    }
+                    else {
+                        let data = [];
+                        const res = results.rows;
+                        for (let i = 0; i < res.data.length; i++) {
+                            data.push({
+                                id: i,
+                                _id: res.data[i]._id,
+                                nome: res.data[i].nome,
+                                pedido_id: res.data[i].pedido,
+                                quantidade: res.data[i].quantidade,
+                                preco_unitario: res.data[i].preco_unitario,
+                                createdAt: res.data[i].createdAt,
+                            });
+                        }
+                        setData(data);
+                    }
+                },
+                () => {
+                    alert('deu algum erro patrão')
+                });
         }
-        else if (dados) { }
     };
     React.useEffect(() => {
         retrieveData();
@@ -194,7 +222,7 @@ export default function pedidoInfoView(props) {
                         onBlur={Keyboard.dismiss}
                         keyboardType="numeric"
                     />
-                    <Text style={[styles.text1, {paddingLeft: 10, paddingTop: 10, fontWeight: "bold"}]}>Lanches:</Text>
+                    <Text style={[styles.text1, { paddingLeft: 10, paddingTop: 10, fontWeight: "bold" }]}>Lanches:</Text>
 
                     <View style={styles.B1}>
                         <FlatList
@@ -202,24 +230,25 @@ export default function pedidoInfoView(props) {
                             renderItem={({ item }) =>
                                 <View style={{ flexDirection: 'row', marginLeft: 10, marginRight: 10 }}>
                                     <Text style={styles.text1}>
-                                        {item.prato_nome}
+                                        {item.nome}
                                     </Text>
                                     <Text style={styles.text2}>
                                         {item.quantidade}
                                     </Text>
                                     <Text style={styles.text3}>
-                                        {item.preco_uni.toFixed(2)}
+                                        {item.preco_unitario}
                                     </Text>
                                 </View>
 
                             }
+                            keyExtractor={item => item.id}
                         />
                     </View>
                     <View style={styles.B2}>
                         <View style={{ flexDirection: 'row', marginLeft: 10, marginRight: 10 }}>
                             <Text style={styles.text1}>
                                 Total
-                        </Text>
+                            </Text>
                             <Text style={styles.text2}>
                                 {totalQtd()}
                             </Text>
@@ -249,13 +278,31 @@ export default function pedidoInfoView(props) {
                                 return
                             }
 
-                            pedidosRepository.Update({ id: pedido.id, mesa: mesa, cliente_nome: nome }, () => {
-                                //Informando que o cadastro foi feito com sucesso
-                                const navigation = props.navigation;
-                                navigation.replace('Home');
-                            }, (e) => {
-                                alert('Erro durante salvamento');
-                            });
+                            pedidosRepository.put(
+                                { id: pedido._id, nomeCliente: nome, mesa: mesa, valor: totalPreco(), status: 1 },
+                                (results, error) => {
+                                    //Informando que o cadastro foi feito com sucesso
+                                    if (error) {
+                                        alert('Ocorreu um erro inesperado!');
+                                        return;
+                                    }
+                                    const res = results.rows;
+                                    if (res.status == 0) {
+                                        if (res.message == 'Validation Error.') {
+                                            alert(res.message + "\n" + res.data[0].msg)
+                                        }
+                                        else {
+                                            alert(JSON.stringify(res.message))
+                                        }
+                                        return;
+                                    }
+                                    else {
+                                        const navigation = props.navigation;
+                                        navigation.replace('Home');
+                                    }
+                                }, (e) => {
+                                    alert('Erro durante salvamento');
+                                });
                         }}>
                             <Text style={styles.enviarButtonText}>Atualizar dados</Text>
                         </TouchableOpacity>

@@ -9,8 +9,7 @@ import {
     Modal,
 } from 'react-native';
 
-import { Button, Icon, Header, Body, Title } from 'native-base';
-import { set } from 'react-native-reanimated';
+import { Icon, Header, Body, Title } from 'native-base';
 
 export default function CardapioView(props) {
     const [modalVisible, setModalVisible] = React.useState(false)
@@ -37,6 +36,11 @@ export default function CardapioView(props) {
             id: '3',
             nome: 'Nugget Borrachudo',
             preco: 0.99
+        },
+        {
+            id: '4',
+            nome: 'Fritas de chuchu',
+            preco: 19.99,
         },
     ];
     const styles = StyleSheet.create({
@@ -109,7 +113,6 @@ export default function CardapioView(props) {
         for (let i = 0; i < data.length; i++) {
             if (newData[i].id == prato.id) {
                 newData[i].quantidade = prato.quantidade
-                newData[i].total = newData[i].quantidade * newData[i].preco_uni
                 contain = true
             }
         }
@@ -118,8 +121,7 @@ export default function CardapioView(props) {
                 id: prato.id,
                 nome: prato.nome,
                 quantidade: prato.quantidade,
-                preco_uni: prato.preco_uni,
-                total: prato.total
+                preco_uni: prato.preco_uni
             })
         }
         navigation.push("Cadastro", { dados: dados, data: newData })
@@ -163,14 +165,14 @@ export default function CardapioView(props) {
 
                     for (let i = 0; i < data.length; i++) {
                         if (data[i].id == id) {
-                            setPrato({ id: id, nome: nome, quantidade: data[i].quantidade, preco_uni: preco, total: data[i].total })
+                            setPrato({ id: id, nome: nome, quantidade: data[i].quantidade, preco_uni: preco })
                             contain = true
-                            total = data[i].total
                             qtd = data[i].quantidade
+                            total = data[i].quantidade * preco
                         }
                     }
                     if (!contain) {
-                        setPrato({ id: id, nome: nome, quantidade: 1, preco_uni: preco, total: preco })
+                        setPrato({ id: id, nome: nome, quantidade: 1, preco_uni: preco})
                     }
                     setQtd(qtd)
                     setTotal(total)
@@ -248,7 +250,6 @@ export default function CardapioView(props) {
                                 onPress={() => {
                                     let newPrato = prato
                                     newPrato.quantidade++
-                                    newPrato.total = newPrato.quantidade * newPrato.preco_uni
                                     setQtd(newPrato.quantidade)
                                     setPrato(newPrato)
                                     setTotal(newPrato.preco_uni * newPrato.quantidade)
@@ -261,7 +262,6 @@ export default function CardapioView(props) {
                                     if (qtd > 1) {
                                         let newPrato = prato
                                         newPrato.quantidade--
-                                        newPrato.total = newPrato.quantidade * newPrato.preco_uni
                                         setQtd(newPrato.quantidade)
                                         setPrato(newPrato)
                                         setTotal(newPrato.preco_uni * newPrato.quantidade)

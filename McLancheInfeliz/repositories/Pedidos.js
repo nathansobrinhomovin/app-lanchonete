@@ -1,6 +1,116 @@
 import {openDatabase, } from 'react-native-sqlite-storage';
+import store from '../redux/store';
+
+const url = 'https://mobile-feso-api.herokuapp.com/api/pedido';
 
 export default class PedidosRepository {
+  getAll(onSuccess, onError) {
+    return fetch(url + "/", {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + store.getState().data.token,
+      },
+    })
+      .then((response) => response.json())
+      .then((json) => {
+        onSuccess({rows: json});
+      })
+      .catch((error) => {
+        alert(error);
+        onError(error);
+      });
+  }
+
+  get(pedido, onSuccess, onError) {
+    return fetch(url + "/" + pedido.id, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + store.getState().data.token,
+      }
+    })
+      .then((response) => response.json())
+      .then((json) => {
+        onSuccess({rows: json});
+      })
+      .catch((error) => {
+        alert(error);
+        onError(error);
+      });
+  }
+
+  post(pedido, onSuccess, onError) {
+    return fetch(url + '/', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + store.getState().data.token,
+      },
+      body: JSON.stringify({
+        mesa: pedido.mesa,
+        status: pedido.status,
+        valor: pedido.total,
+        nomeCliente: pedido.nome_cliente,
+      })
+    })
+      .then((response) => response.json())
+      .then((json) => {
+        onSuccess({rows: json});
+      })
+      .catch((error) => {
+        alert(error);
+        onError(error);
+      });
+  }
+
+  put(pedido, onSuccess, onError) {
+    return fetch(url + '/' + pedido.id, {
+      method: 'PUT',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + store.getState().data.token,
+      },
+      body: JSON.stringify({
+        nomeCliente: pedido.nomeCliente,
+        mesa: pedido.mesa,
+        status: pedido.status,
+        valor: pedido.valor,
+      })
+    })
+      .then((response) => response.json())
+      .then((json) => {
+        onSuccess({rows: json});
+      })
+      .catch((error) => {
+        alert(error);
+        onError(error);
+      });
+  }
+
+  delete(pedido, onSuccess, onError) {
+    return fetch(url + "/" + pedido.id, {
+      method: 'DELETE',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + store.getState().data.token,
+      }
+    })
+      .then((response) => response.json())
+      .then((json) => {
+        onSuccess({rows: json});
+      })
+      .catch((error) => {
+        alert(error);
+        onError(error);
+      });
+  }
+  /*
   DBNAME = 'app.db';
   CREATE =
     'CREATE TABLE IF NOT EXISTS pedidos(id INTEGER PRIMARY KEY AUTOINCREMENT, mesa INTEGER UNIQUE NOT NULL, cliente_nome VARCHAR(100))';
@@ -71,5 +181,5 @@ export default class PedidosRepository {
     db.transaction((transaction) => {
       transaction.executeSql(this.DELETE, [pedido.id], onSuccess, onError);
     });
-  }
+  }*/
 }
